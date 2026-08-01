@@ -46,6 +46,7 @@ func StartBot(token string) {
 
 			if update.Message != nil && strings.HasPrefix(update.Message.Text, "/") {
 				fmt.Printf("Received command : %s", update.Message.Text)
+				handleBotCommand(psg, update.Message)
 			}
 		}
 	}

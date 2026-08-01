@@ -27,3 +27,9 @@ type Message struct {
 type Chat struct {
 	ID int64 `json:"id"`
 }
+
+type SendMessagePayload struct {
+	ChatID    int64  `json:"chat_id"`
+	Text      string `json:"text"`
+	ParseMode string `json:"parse_mode,omitempty"`
+}
