@@ -31,17 +31,20 @@ func (bot *TelegramBot) sendJSON(endpoint string, payload any) error {
 }
 
 func insertStudent(db *sql.DB, rollno, encryptedPassword string, chatID int64) (error, int) {
-	existingChat := db.QueryRow("SELECT chat_id FROM students WHERE chat_id = $1", chatID)
-	var existingChatID string
+	existingChat := db.QueryRow("SELECT chat_id FROM students WHERE rollno = $1", rollno)
+	var existingChatID int64
 	err := existingChat.Scan(&existingChatID)
 	if err != nil && err != sql.ErrNoRows {
-		return err, 10
+		return err, 20
+	}
+	if err == nil && existingChatID != chatID {
+		return fmt.Errorf("rollno %s is already registered with another chat ID", rollno), 10
 	}
 
 	_, err = db.Exec(`
 		INSERT INTO students (rollno, password, chat_id)
 		VALUES ($1, $2, $3)
-		ON CONFLICT (chat_id) DO UPDATE SET rollno = $1, password = $2
+		ON CONFLICT (rollno) DO UPDATE SET password = $2, chat_id = $3
 	`, rollno, encryptedPassword, chatID)
 	if err != nil {
 		return err, 20
