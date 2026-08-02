@@ -2,10 +2,12 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 
-	godotenv "github.com/joho/godotenv"
-	logger "psghostelbot/internal/logger"
+	"github.com/joho/godotenv"
+	"psghostelbot/internal/db"
+	"psghostelbot/internal/logger"
 	tg "psghostelbot/internal/telegram"
 )
 
@@ -17,6 +19,13 @@ func main() {
 	}
 
 	logger.ConfigLogger()
+	database, err := db.NewConnection(os.Getenv("DB_URL"))
+	if err != nil {
+		slog.Error("Error connecting to database:", "error", err)
+		os.Exit(1)
+		return
+	}
+	defer database.Close()
 
-	tg.StartBot(os.Getenv("TELEGRAM_BOT_TOKEN"))
+	tg.StartBot(os.Getenv("TELEGRAM_BOT_TOKEN"), database)
 }

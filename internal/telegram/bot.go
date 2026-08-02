@@ -1,6 +1,7 @@
 package telegram
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -17,7 +18,7 @@ func createBot(token string) *TelegramBot {
 	}
 }
 
-func StartBot(token string) {
+func StartBot(token string, db *sql.DB) {
 	psg := createBot(token)
 	offset := 0
 
@@ -45,7 +46,7 @@ func StartBot(token string) {
 			}
 
 			if update.Message != nil && strings.HasPrefix(update.Message.Text, "/") {
-				handleBotCommand(psg, update.Message)
+				handleBotCommand(psg, update.Message, db)
 			}
 		}
 	}

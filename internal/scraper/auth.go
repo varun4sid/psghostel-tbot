@@ -13,11 +13,6 @@ type AuthPayload struct {
 	Password string `json:"password"`
 }
 
-// type AuthResponse struct {
-// 	Token        string `json:"token"`
-// 	RefreshToken string `json:"refreshToken"`
-// }
-
 type StudentDetails struct {
 	Name string `json:"name"`
 }
@@ -47,8 +42,7 @@ func CheckValidCredentials(rollno, password string) (bool, string, error) {
 
 	resp, err := client.Get(index_page_url)
 	if err != nil {
-		fmt.Printf("Error fetching index page: %v\n", err)
-		return false, username, err
+		return false, username, fmt.Errorf("error fetching index page : %v", err)
 	}
 	defer resp.Body.Close()
 
@@ -57,33 +51,28 @@ func CheckValidCredentials(rollno, password string) (bool, string, error) {
 		"password": {password},
 	})
 	if err != nil {
-		fmt.Printf("Error during authentication: %v\n", err)
-		return false, username, err
+		return false, username, fmt.Errorf("%s : error during authentication : %v", rollno, err)
 	}
 	defer response.Body.Close()
 
 	if response.StatusCode >= 400 {
-		fmt.Printf("Authentication failed with status code: %d\n", response.StatusCode)
-		return false, username, fmt.Errorf("authentication failed")
+		return false, username, fmt.Errorf("%s : authentication failed", rollno)
 	}
 
 	response, err = client.Get(student_info_url + "?rollno=" + rollno)
 	if err != nil {
-		fmt.Printf("Error fetching student info: %v\n", err)
-		return false, username, err
+		return false, username, fmt.Errorf("%s : failed to fetch student info : %v", rollno, err)
 	}
 	defer response.Body.Close()
 
 	if response.StatusCode >= 400 {
-		fmt.Printf("Failed to fetch student info with status code: %d\n", response.StatusCode)
-		return false, username, fmt.Errorf("failed to fetch student info")
+		return false, username, fmt.Errorf("%s : failed to fetch student info : %v", rollno, err)
 	}
 
 	var studentDetails []StudentDetails
 	err = json.NewDecoder(response.Body).Decode(&studentDetails)
 	if err != nil {
-		fmt.Printf("Error decoding student info: %v\n", err)
-		return false, username, err
+		return false, username, fmt.Errorf("%s : failed to decode student info : %v", rollno, err)
 	}
 
 	username = studentDetails[0].Name

@@ -1,13 +1,16 @@
 package telegram
 
 import (
+	"database/sql"
 	"fmt"
 	"log/slog"
+	"os"
+	"psghostelbot/internal/crypt"
 	"psghostelbot/internal/scraper"
 	"strings"
 )
 
-func handleBotCommand(psg *TelegramBot, msg *Message) {
+func handleBotCommand(psg *TelegramBot, msg *Message, db *sql.DB) {
 	args := strings.Split(strings.TrimSpace(msg.Text), " ")
 	command := args[0]
 
@@ -15,7 +18,7 @@ func handleBotCommand(psg *TelegramBot, msg *Message) {
 	case "/start":
 		handleCommandStart(psg, &msg.Chat.ID)
 	case "/register":
-		handleCommandRegister(psg, msg)
+		handleCommandRegister(psg, msg, db)
 	}
 }
 
@@ -35,7 +38,7 @@ func handleCommandStart(psg *TelegramBot, chatID *int64) {
 	}
 }
 
-func handleCommandRegister(psg *TelegramBot, msg *Message) {
+func handleCommandRegister(psg *TelegramBot, msg *Message, db *sql.DB) {
 	args := strings.Split(strings.TrimSpace(msg.Text), " ")
 
 	var botReply string
@@ -53,7 +56,25 @@ func handleCommandRegister(psg *TelegramBot, msg *Message) {
 			fmt.Printf("\nError validating user credentials : %v\n", err)
 		}
 		if isValid {
-			botReply = fmt.Sprintf("Hello %s! You have been successfully registered!", username)
+			encryptedPassword, err := crypt.EncryptPassword(password, os.Getenv("AES_KEY"))
+			if err != nil {
+				slog.Error("Failed to encrypt password", "error", err)
+				botReply = "An error occurred while encrypting. Please try again."
+			}
+
+			err, code := insertStudent(db, rollno, encryptedPassword, msg.Chat.ID)
+			if err != nil {
+				switch code {
+				case 10:
+					botReply = "Another chat is already registered with this roll! Please contact the admin for assistance."
+				case 20:
+					botReply = "Failed to insert student data. Please try again later."
+				default:
+					botReply = "An unexpected error occurred. Please try again later."
+				}
+			} else {
+				botReply = fmt.Sprintf("Hello %s! You have been successfully registered!", username)
+			}
 		} else {
 			botReply = "Invalid credentials. Please try again."
 		}
