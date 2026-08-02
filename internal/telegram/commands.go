@@ -3,6 +3,7 @@ package telegram
 import (
 	"fmt"
 	"log/slog"
+	"psghostelbot/internal/scraper"
 	"strings"
 )
 
@@ -19,7 +20,6 @@ func handleBotCommand(psg *TelegramBot, msg *Message) {
 }
 
 func handleCommandStart(psg *TelegramBot, chatID *int64) {
-	fmt.Printf("chatID : %v", chatID)
 	if err := psg.sendJSON("sendMessage", SendMessagePayload{
 		ChatID: *chatID,
 		Text: dedent(`
@@ -46,9 +46,17 @@ func handleCommandRegister(psg *TelegramBot, msg *Message) {
 		`)
 	} else {
 		rollno := args[1]
+		password := strings.ToUpper(args[2])
 
-		botReply = "Roll : " + rollno
-		slog.Info("/register", "rollno", rollno)
+		isValid, username, err := scraper.CheckValidCredentials(rollno, password)
+		if err != nil {
+			fmt.Printf("\nError validating user credentials : %v\n", err)
+		}
+		if isValid {
+			botReply = fmt.Sprintf("Hello %s! You have been successfully registered!", username)
+		} else {
+			botReply = "Invalid credentials. Please try again."
+		}
 	}
 
 	if err := psg.sendJSON("sendMessage", SendMessagePayload{
