@@ -1,7 +1,8 @@
 package telegram
 
 import (
-	"log"
+	"fmt"
+	"log/slog"
 	"strings"
 )
 
@@ -18,6 +19,7 @@ func handleBotCommand(psg *TelegramBot, msg *Message) {
 }
 
 func handleCommandStart(psg *TelegramBot, chatID *int64) {
+	fmt.Printf("chatID : %v", chatID)
 	if err := psg.sendJSON("sendMessage", SendMessagePayload{
 		ChatID: *chatID,
 		Text: dedent(`
@@ -29,7 +31,7 @@ func handleCommandStart(psg *TelegramBot, chatID *int64) {
 		`),
 		ParseMode: "Markdown",
 	}); err != nil {
-		log.Printf("/sendMessage failed: %v", err)
+		slog.Error("Failed to send message", "error", err)
 	}
 }
 
@@ -44,9 +46,9 @@ func handleCommandRegister(psg *TelegramBot, msg *Message) {
 		`)
 	} else {
 		rollno := args[1]
-		password := args[2]
 
-		botReply = "Roll : " + rollno + "\nPassword : " + password
+		botReply = "Roll : " + rollno
+		slog.Info("/register", "rollno", rollno)
 	}
 
 	if err := psg.sendJSON("sendMessage", SendMessagePayload{
@@ -54,6 +56,6 @@ func handleCommandRegister(psg *TelegramBot, msg *Message) {
 		Text:      botReply,
 		ParseMode: "Markdown",
 	}); err != nil {
-		log.Printf("/sendMessage failed: %v", err)
+		slog.Error("Failed to send message", "error", err)
 	}
 }
