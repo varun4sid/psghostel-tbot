@@ -51,11 +51,11 @@ func handleCommandRegister(psg *TelegramBot, msg *Message, db *sql.DB) {
 		rollno := args[1]
 		password := strings.ToUpper(args[2])
 
-		isValid, username, err := scraper.CheckValidCredentials(rollno, password)
+		username, err := scraper.GetUserIfExists(rollno, password)
 		if err != nil {
 			fmt.Printf("\nError validating user credentials : %v\n", err)
 		}
-		if isValid {
+		if username != "" {
 			encryptedPassword, err := crypt.EncryptPassword(password, os.Getenv("AES_KEY"))
 			if err != nil {
 				slog.Error("Failed to encrypt password", "error", err)

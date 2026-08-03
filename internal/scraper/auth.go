@@ -32,17 +32,15 @@ func newAuthClient() (*http.Client, error) {
 	return &http.Client{Jar: jar}, nil
 }
 
-func CheckValidCredentials(rollno, password string) (bool, string, error) {
-	var username string
-
+func GetAuthenticatedClient(rollno, password string) (*http.Client, error) {
 	client, err := newAuthClient()
 	if err != nil {
-		return false, username, err
+		return nil, err
 	}
 
 	resp, err := client.Get(index_page_url)
 	if err != nil {
-		return false, username, fmt.Errorf("error fetching index page : %v", err)
+		return nil, fmt.Errorf("error fetching index page : %v", err)
 	}
 	defer resp.Body.Close()
 
@@ -51,30 +49,41 @@ func CheckValidCredentials(rollno, password string) (bool, string, error) {
 		"password": {password},
 	})
 	if err != nil {
-		return false, username, fmt.Errorf("%s : error during authentication : %v", rollno, err)
+		return nil, fmt.Errorf("%s : error during authentication : %v", rollno, err)
 	}
 	defer response.Body.Close()
 
 	if response.StatusCode >= 400 {
-		return false, username, fmt.Errorf("%s : authentication failed", rollno)
+		return nil, fmt.Errorf("%s : authentication failed", rollno)
 	}
 
-	response, err = client.Get(student_info_url + "?rollno=" + rollno)
+	return client, nil
+}
+
+func GetUserIfExists(rollno, password string) (string, error) {
+	var username string
+
+	client, err := GetAuthenticatedClient(rollno, password)
 	if err != nil {
-		return false, username, fmt.Errorf("%s : failed to fetch student info : %v", rollno, err)
+		return "", err
+	}
+
+	response, err := client.Get(student_info_url + "?rollno=" + rollno)
+	if err != nil {
+		return "", fmt.Errorf("%s : failed to fetch student info : %v", rollno, err)
 	}
 	defer response.Body.Close()
 
 	if response.StatusCode >= 400 {
-		return false, username, fmt.Errorf("%s : failed to fetch student info : %v", rollno, err)
+		return "", fmt.Errorf("%s : failed to fetch student info : %v", rollno, err)
 	}
 
 	var studentDetails []StudentDetails
 	err = json.NewDecoder(response.Body).Decode(&studentDetails)
 	if err != nil {
-		return false, username, fmt.Errorf("%s : failed to decode student info : %v", rollno, err)
+		return "", fmt.Errorf("%s : failed to decode student info : %v", rollno, err)
 	}
 
 	username = studentDetails[0].Name
-	return true, username, nil
+	return username, nil
 }
