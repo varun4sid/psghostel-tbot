@@ -1,7 +1,11 @@
 package telegram
 
 import (
+	"database/sql"
+	"fmt"
 	"strings"
+
+	pq "github.com/lib/pq"
 )
 
 func dedent(s string) string {
@@ -26,4 +30,22 @@ func dedent(s string) string {
 		}
 	}
 	return strings.Join(lines, "\n")
+}
+
+func insertStudent(db *sql.DB, rollno, password string, chatID int64) (error, string) {
+	_, err := db.Exec(`
+		INSERT INTO students (rollno, password, chat_id)
+		VALUES ($1, $2, $3)
+		ON CONFLICT (chat_id) DO UPDATE SET rollno=$1, password = $2
+	`, rollno, password, chatID)
+	if err != nil {
+		if pqErr, ok := err.(*pq.Error); ok {
+			if pqErr.Code == "23505" {
+				return fmt.Errorf("Rollno %s is already registered with another chat ID", rollno),
+					"Rollno %s is already registered by another user. Please contact support if this is an error."
+			}
+		}
+	}
+
+	return nil, "Student registered successfully."
 }

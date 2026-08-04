@@ -33,3 +33,8 @@ type SendMessagePayload struct {
 	Text      string `json:"text"`
 	ParseMode string `json:"parse_mode,omitempty"`
 }
+
+type DeleteMessagePayload struct {
+	ChatID    int64 `json:"chat_id"`
+	MessageID int   `json:"message_id"`
+}

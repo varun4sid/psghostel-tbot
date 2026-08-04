@@ -19,21 +19,21 @@ func handleBotCommand(psg *TelegramBot, msg *Message, db *sql.DB) {
 		handleCommandStart(psg, &msg.Chat.ID)
 	case "/register":
 		handleCommandRegister(psg, msg, db)
+	default:
+		handleUnknownCommand(psg, msg)
 	}
 }
 
 func handleCommandStart(psg *TelegramBot, chatID *int64) {
-	if err := psg.sendJSON("sendMessage", SendMessagePayload{
-		ChatID: *chatID,
-		Text: dedent(`
-			Welcome to PSG Tech Hostel Bot!
-			Register yourself using the following command:
-			/register <rollno> <password>
-			Eg.
-			/register 22AB123 myPassword
-		`),
-		ParseMode: "Markdown",
-	}); err != nil {
+	message := `
+		Welcome to PSG Tech Hostel Bot!
+		Register yourself as follows:
+
+		/register <rollno> <password>
+		/register 22AB123 myPassword
+	`
+
+	if err := psg.sendMessage(message, chatID); err != nil {
 		slog.Error("Failed to send message", "error", err)
 	}
 }
@@ -43,11 +43,7 @@ func handleCommandRegister(psg *TelegramBot, msg *Message, db *sql.DB) {
 
 	var botReply string
 
-	if len(args) != 3 {
-		botReply = dedent(`
-			Invalid format! Try again!
-		`)
-	} else {
+	if len(args) == 3 {
 		rollno := args[1]
 		password := strings.ToUpper(args[2])
 
@@ -55,6 +51,7 @@ func handleCommandRegister(psg *TelegramBot, msg *Message, db *sql.DB) {
 		if err != nil {
 			fmt.Printf("\nError validating user credentials : %v\n", err)
 		}
+
 		if username != "" {
 			encryptedPassword, err := crypt.EncryptPassword(password, os.Getenv("AES_KEY"))
 			if err != nil {
@@ -62,29 +59,32 @@ func handleCommandRegister(psg *TelegramBot, msg *Message, db *sql.DB) {
 				botReply = "An error occurred while encrypting. Please try again."
 			}
 
-			err, code := insertStudent(db, rollno, encryptedPassword, msg.Chat.ID)
+			err, errMsg := insertStudent(db, rollno, encryptedPassword, msg.Chat.ID)
 			if err != nil {
-				switch code {
-				case 10:
-					botReply = "Another chat is already registered with this roll! Please contact the admin for assistance."
-				case 20:
-					botReply = "Failed to insert student data. Please try again later."
-				default:
-					botReply = "An unexpected error occurred. Please try again later."
-				}
+				botReply = errMsg
 			} else {
 				botReply = fmt.Sprintf("Hello %s! You have been successfully registered!", username)
 			}
 		} else {
-			botReply = "Invalid credentials. Please try again."
+			botReply = "Invalid credentials! Please try again."
 		}
+	} else {
+		botReply = "Invalid format! Try again."
 	}
 
-	if err := psg.sendJSON("sendMessage", SendMessagePayload{
-		ChatID:    msg.Chat.ID,
-		Text:      botReply,
-		ParseMode: "Markdown",
-	}); err != nil {
+	if err := psg.sendMessage(botReply, &msg.Chat.ID); err != nil {
 		slog.Error("Failed to send message", "error", err)
 	}
+
+	if err := psg.deleteMessage(msg.Chat.ID, msg.MessageID); err != nil {
+		slog.Error("Failed to delete message", "error", err)
+	}
+}
+
+func handleUnknownCommand(psg *TelegramBot, msg *Message) {
+	message := `
+		Unknown command. Click /help to open list of available commands.
+	`
+
+	psg.sendMessage(message, &msg.Chat.ID)
 }
