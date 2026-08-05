@@ -21,6 +21,8 @@ const (
 	index_page_url   = "https://edviewx.psgtech.ac.in/Hostel/Home/Index"
 	auth_url         = "https://edviewx.psgtech.ac.in/Hostel/Login/Authenticate"
 	student_info_url = "https://edviewx.psgtech.ac.in/Hostel/Student/studDetails"
+	get_token_url    = "https://edviewx.psgtech.ac.in/Hostel/Student/StudentGetToken"
+	qrCode_url       = "https://edviewx.psgtech.ac.in/Hostel/QRCode/QRcodeGenerate"
 )
 
 func newAuthClient() (*http.Client, error) {
@@ -35,12 +37,12 @@ func newAuthClient() (*http.Client, error) {
 func GetAuthenticatedClient(rollno, password string) (*http.Client, error) {
 	client, err := newAuthClient()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("UNABLE TO CREATE HTTP CLIENT: %w", err)
 	}
 
 	resp, err := client.Get(index_page_url)
 	if err != nil {
-		return nil, fmt.Errorf("error fetching index page : %v", err)
+		return nil, fmt.Errorf("UNABLE TO GET INDEX PAGE: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -48,20 +50,16 @@ func GetAuthenticatedClient(rollno, password string) (*http.Client, error) {
 		"name":     {rollno},
 		"password": {password},
 	})
-	if err != nil {
-		return nil, fmt.Errorf("%s : error during authentication : %v", rollno, err)
+	if err != nil || response.StatusCode >= 400 {
+		return nil, fmt.Errorf("UNABLE TO AUTHENTICATE USER: %w", err)
 	}
 	defer response.Body.Close()
-
-	if response.StatusCode >= 400 {
-		return nil, fmt.Errorf("%s : authentication failed", rollno)
-	}
 
 	return client, nil
 }
 
 func GetUserIfExists(rollno, password string) (string, error) {
-	var username string
+	var err error
 
 	client, err := GetAuthenticatedClient(rollno, password)
 	if err != nil {
@@ -70,20 +68,19 @@ func GetUserIfExists(rollno, password string) (string, error) {
 
 	response, err := client.Get(student_info_url + "?rollno=" + rollno)
 	if err != nil {
-		return "", fmt.Errorf("%s : failed to fetch student info : %v", rollno, err)
+		return "", fmt.Errorf("UNABLE TO FETCH STUDENT INFO: %w", err)
 	}
 	defer response.Body.Close()
 
 	if response.StatusCode >= 400 {
-		return "", fmt.Errorf("%s : failed to fetch student info : %v", rollno, err)
+		return "", fmt.Errorf("UNABLE TO FETCH STUDENT INFO: %w", err)
 	}
 
 	var studentDetails []StudentDetails
 	err = json.NewDecoder(response.Body).Decode(&studentDetails)
 	if err != nil {
-		return "", fmt.Errorf("%s : failed to decode student info : %v", rollno, err)
+		return "", fmt.Errorf("UNABLE TO DECODE STUDENT INFO: %w", err)
 	}
 
-	username = studentDetails[0].Name
-	return username, nil
+	return studentDetails[0].Name, nil
 }

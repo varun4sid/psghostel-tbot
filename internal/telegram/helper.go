@@ -32,7 +32,8 @@ func dedent(s string) string {
 	return strings.Join(lines, "\n")
 }
 
-func insertStudent(db *sql.DB, rollno, password string, chatID int64) (error, string) {
+func insertStudent(db *sql.DB, rollno, password string, chatID int64) (string, error) {
+	var botReply string
 	_, err := db.Exec(`
 		INSERT INTO students (rollno, password, chat_id)
 		VALUES ($1, $2, $3)
@@ -41,11 +42,11 @@ func insertStudent(db *sql.DB, rollno, password string, chatID int64) (error, st
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {
 			if pqErr.Code == "23505" {
-				return fmt.Errorf("Rollno %s is already registered with another chat ID", rollno),
-					"Rollno %s is already registered by another user. Please contact support if this is an error."
+				botReply = fmt.Sprintf("%s is already registered by another user!", rollno)
+				return botReply, fmt.Errorf("%s is already registered with another chat ID", rollno)
 			}
 		}
 	}
 
-	return nil, "Student registered successfully."
+	return botReply, nil
 }

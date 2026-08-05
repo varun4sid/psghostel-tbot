@@ -11,13 +11,13 @@ import (
 func (bot *TelegramBot) sendJSON(endpoint string, payload any) error {
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
-		return err
+		return fmt.Errorf("UNABLE TO MARSHAL JSON : %w", err)
 	}
 
 	reqURL := bot.API_URL + endpoint
 	response, err := bot.Client.Post(reqURL, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
-		return err
+		return fmt.Errorf("UNABLE TO SEND REQUEST : %w", err)
 	}
 	defer response.Body.Close()
 

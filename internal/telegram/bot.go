@@ -23,18 +23,18 @@ func StartBot(token string, db *sql.DB) {
 	offset := 0
 
 	for {
-		updatedURL := fmt.Sprintf("%sgetUpdates?timeout=60&offset=%d", psg.API_URL, offset)
+		updated_url := fmt.Sprintf("%sgetUpdates?timeout=60&offset=%d", psg.API_URL, offset)
 
-		response, err := psg.Client.Get(updatedURL)
+		response, err := psg.Client.Get(updated_url)
 		if err != nil {
-			log.Printf("Network error while fetching updates : %v Retrying in 3s...", err)
+			log.Printf("UNABLE TO FETCH UPDATES/NETWORK :\n%w\nRetrying in 3s...", err)
 			time.Sleep(3 * time.Second)
 			continue
 		}
 
 		var updateResp UpdateResponse
 		if err := json.NewDecoder(response.Body).Decode(&updateResp); err != nil {
-			log.Printf("JSON decode error : %v", err)
+			log.Printf("UNABLE TO DECODE UPDATE RESPONSE : %w", err)
 			response.Body.Close()
 			continue
 		}

@@ -10,7 +10,6 @@ import (
 func ConfigLogger() {
 	ist, err := time.LoadLocation("Asia/Kolkata")
 	if err != nil {
-		// Fallback: fixed UTC+05:30
 		ist = time.FixedZone("IST", 5*60*60+30*60)
 	}
 

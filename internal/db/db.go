@@ -10,11 +10,11 @@ import (
 func NewConnection(connString string) (*sql.DB, error) {
 	db, err := sql.Open("postgres", connString)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open database: %w", err)
+		return nil, fmt.Errorf("UNABLE TO OPEN DATABASE: %w", err)
 	}
 
 	if err := db.Ping(); err != nil {
-		return nil, fmt.Errorf("failed to ping database: %w", err)
+		return nil, fmt.Errorf("UNABLE TO PING DATABASE: %w", err)
 	}
 
 	db.SetMaxOpenConns(25)

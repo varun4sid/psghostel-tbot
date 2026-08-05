@@ -7,24 +7,23 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"os"
 )
 
 func EncryptPassword(plainText, keyString string) (string, error) {
 	key := []byte(keyString)
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("UNABLE TO CREATE CIPHER BLOCK : %w", err)
 	}
 
 	aesGCM, err := cipher.NewGCM(block)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("UNABLE TO CREATE GCM CIPHER : %w", err)
 	}
 
 	nonce := make([]byte, aesGCM.NonceSize())
 	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
-		return "", err
+		return "", fmt.Errorf("UNABLE TO GENERATE NONCE : %w", err)
 	}
 
 	cipherText := aesGCM.Seal(nonce, nonce, []byte(plainText), nil)
@@ -37,12 +36,12 @@ func DecryptPassword(encryptedHex, keyString string) (string, error) {
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("UNABLE TO CREATE CIPHER BLOCK : %w", err)
 	}
 
 	aesGCM, err := cipher.NewGCM(block)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("UNABLE TO CREATE GCM CIPHER : %w", err)
 	}
 
 	nonceSize := aesGCM.NonceSize()
@@ -50,23 +49,8 @@ func DecryptPassword(encryptedHex, keyString string) (string, error) {
 
 	plainText, err := aesGCM.Open(nil, nonce, cipherText, nil)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("UNABLE TO DECRYPT : %w", err)
 	}
 
 	return string(plainText), nil
-}
-
-func Trial(str string) {
-	key := os.Getenv("AES_KEY")
-	encrypted, err := EncryptPassword(str, key)
-	if err != nil {
-		fmt.Println("Error encrypting:", err)
-	}
-	fmt.Println("Encrypted:", encrypted)
-
-	decrypted, err := DecryptPassword(encrypted, key)
-	if err != nil {
-		fmt.Println("Error decrypting:", err)
-	}
-	fmt.Println("Decrypted:", decrypted)
 }
