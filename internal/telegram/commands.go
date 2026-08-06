@@ -2,11 +2,7 @@ package telegram
 
 import (
 	"database/sql"
-	"fmt"
-	"log/slog"
-	"os"
-	"psghostelbot/internal/crypt"
-	"psghostelbot/internal/scraper"
+	"log"
 	"strings"
 )
 
@@ -15,81 +11,72 @@ const (
 )
 
 func handleBotCommand(psg *TelegramBot, msg *Message, db *sql.DB) {
-	args := strings.Split(strings.TrimSpace(msg.Text), " ")
+	args := strings.Fields(strings.TrimSpace(msg.Text))
+	if len(args) == 0 {
+		return
+	}
 	command := args[0]
 
+	var reply string
 	var err error
+
 	switch command {
 	case "/start":
-		err = handleCommandStart(psg, &msg.Chat.ID)
+		reply, err = handleCommandStart()
 	case "/register":
-		err = handleCommandRegister(psg, msg, db)
+		reply, err = handleCommandRegister(msg, db, args)
 	default:
-		err = handleUnknownCommand(psg, msg)
+		reply, err = handleUnknownCommand()
 	}
 
 	if err != nil {
-		slog.Error("", err)
+		log.Printf("Error handling command %s: %v", command, err)
+	} else {
+		err = psg.sendMessage(reply, &msg.Chat.ID)
+		if err != nil {
+			log.Printf("Error sending reply for command %s: %v", command, err)
+		} else {
+			if command == "/register" {
+				log.Printf("User %d registered with roll number %s", msg.Chat.ID, strings.Fields(msg.Text)[1])
+				psg.deleteMessage(msg.Chat.ID, msg.MessageID)
+			}
+		}
 	}
 }
 
-func handleCommandStart(psg *TelegramBot, chatID *int64) error {
+func handleCommandStart() (string, error) {
 	message := `
 		Welcome to PSG Tech Hostel Bot!
 		Register yourself as follows:
 
 	` + registration_tip
 
-	return psg.sendMessage(message, chatID)
+	return message, nil
 }
 
-func handleCommandRegister(psg *TelegramBot, msg *Message, db *sql.DB) error {
-	args := strings.Fields(strings.TrimSpace(msg.Text))
-	var opError error
+func handleCommandRegister(msg *Message, db *sql.DB, args []string) (string, error) {
+	var reply string
+	var err error
 
-	reply := "Invalid format! Try again as follows:\n" + registration_tip
 	if len(args) == 3 {
 		rollno := args[1]
 		password := strings.ToUpper(args[2])
 
-		username, err := scraper.GetUserIfExists(rollno, password)
+		reply, err = getRegisterReplyAndError(db, rollno, password, msg.Chat.ID)
 		if err != nil {
-			reply = "An error occurred while registering! Please try again."
-			opError = err
-		} else if username != "" {
-			encryptedPassword, err := crypt.EncryptPassword(password, os.Getenv("AES_KEY"))
-			if err != nil {
-				reply = "An error occurred while encrypting your data. Please try again."
-				opError = err
-			} else {
-				replyMsg, err := insertStudent(db, rollno, encryptedPassword, msg.Chat.ID)
-				if err != nil {
-					reply = replyMsg
-					opError = err
-				} else {
-					reply = fmt.Sprintf("Hello %s! You have been successfully registered!", username)
-				}
-			}
-		} else {
-			reply = "Invalid rollno or password! Please try again."
+			log.Print(err)
 		}
+	} else {
+		reply = "Invalid format! Try again as follows:\n" + registration_tip
 	}
 
-	if sendError := psg.sendMessage(reply, &msg.Chat.ID); sendError != nil {
-		return sendError
-	}
-
-	if deleteError := psg.deleteMessage(msg.Chat.ID, msg.MessageID); deleteError != nil {
-		return deleteError
-	}
-
-	return opError
+	return reply, err
 }
 
-func handleUnknownCommand(psg *TelegramBot, msg *Message) error {
+func handleUnknownCommand() (string, error) {
 	message := `
 		Unknown command. Click /help to open list of available commands.
 	`
 
-	return psg.sendMessage(message, &msg.Chat.ID)
+	return message, nil
 }

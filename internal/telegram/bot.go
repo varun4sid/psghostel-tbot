@@ -27,14 +27,14 @@ func StartBot(token string, db *sql.DB) {
 
 		response, err := psg.Client.Get(updated_url)
 		if err != nil {
-			log.Printf("UNABLE TO FETCH UPDATES/NETWORK :\n%w\nRetrying in 3s...", err)
+			log.Printf("UNABLE TO FETCH UPDATES/NETWORK :\n%v\nRetrying in 3s...", err)
 			time.Sleep(3 * time.Second)
 			continue
 		}
 
 		var updateResp UpdateResponse
 		if err := json.NewDecoder(response.Body).Decode(&updateResp); err != nil {
-			log.Printf("UNABLE TO DECODE UPDATE RESPONSE : %w", err)
+			log.Printf("UNABLE TO DECODE UPDATE RESPONSE : %v", err)
 			response.Body.Close()
 			continue
 		}
