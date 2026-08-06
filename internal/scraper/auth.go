@@ -8,23 +8,6 @@ import (
 	"net/url"
 )
 
-type AuthPayload struct {
-	Name     string `json:"name"`
-	Password string `json:"password"`
-}
-
-type StudentDetails struct {
-	Name string `json:"name"`
-}
-
-const (
-	index_page_url   = "https://edviewx.psgtech.ac.in/Hostel/Home/Index"
-	auth_url         = "https://edviewx.psgtech.ac.in/Hostel/Login/Authenticate"
-	student_info_url = "https://edviewx.psgtech.ac.in/Hostel/Student/studDetails"
-	get_token_url    = "https://edviewx.psgtech.ac.in/Hostel/Student/StudentGetToken"
-	qrCode_url       = "https://edviewx.psgtech.ac.in/Hostel/QRCode/QRcodeGenerate"
-)
-
 func newAuthClient() (*http.Client, error) {
 	jar, err := cookiejar.New(nil)
 	if err != nil {
