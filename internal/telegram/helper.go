@@ -56,7 +56,7 @@ func insertStudent(db *sql.DB, rollno, password string, chatID int64) (string, e
 	return botReply, nil
 }
 
-func getRegisterReplyAndError(db *sql.DB, rollno, password string, chatID int64) (string, error) {
+func getRegisterReplyAndError(db *sql.DB, rollno, password string, chatID int64, psg *TelegramBot) (string, error) {
 	var reply string = "Invalid format! Try again as follows:\n" + registration_tip
 
 	username, err := scraper.GetUserIfExists(rollno, password)
@@ -74,7 +74,8 @@ func getRegisterReplyAndError(db *sql.DB, rollno, password string, chatID int64)
 				reply = replyMsg
 				return reply, err
 			} else {
-				reply = fmt.Sprintf("Hello %s! You have been successfully registered!", username)
+				reply = fmt.Sprintf("Hello %s! You have been successfully registered to receive your booked QR codes!\n", username)
+				RunScraperForUser(rollno, password, chatID, psg)
 			}
 		}
 	} else {

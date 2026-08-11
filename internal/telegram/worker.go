@@ -42,13 +42,7 @@ func RunBatchScrape(database *sql.DB, psg *TelegramBot, mealName string) {
 				return
 			}
 
-			imageBytes, caption := GetQRImage(s.Rollno, plainPassword, psg)
-			if imageBytes == nil {
-				log.Printf("UNABLE TO GET QR CODE FOR ROLL NO %s", s.Rollno)
-				return
-			}
-
-			err = psg.sendPhoto(s.ChatID, imageBytes, caption)
+			err = RunScraperForUser(s.Rollno, plainPassword, s.ChatID, psg)
 			if err != nil {
 				log.Printf("UNABLE TO SEND PHOTO TO CHAT ID %d FOR ROLL NO %s : %v", s.ChatID, s.Rollno, err)
 				return
@@ -80,7 +74,7 @@ func CreateScheduler(database *sql.DB, psg *TelegramBot) *gocron.Scheduler {
 		RunBatchScrape, database, psg, "Lunch",
 	)
 
-	scheduler.Every(1).Day().At("18:32").Do(
+	scheduler.Every(1).Day().At("18:30").Do(
 		RunBatchScrape, database, psg, "Dinner",
 	)
 
@@ -110,4 +104,14 @@ func GetQRImage(rollno string, password string, psg *TelegramBot) ([]byte, strin
 	}
 
 	return imageBytes, caption
+}
+
+func RunScraperForUser(rollno string, password string, chatID int64, psg *TelegramBot) error {
+	imageBytes, caption := GetQRImage(rollno, password, psg)
+	if imageBytes == nil {
+		log.Printf("UNABLE TO GET QR CODE FOR ROLL NO %s", rollno)
+	}
+
+	err := psg.sendPhoto(chatID, imageBytes, caption)
+	return err
 }

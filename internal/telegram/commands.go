@@ -24,7 +24,7 @@ func handleBotCommand(psg *TelegramBot, msg *Message, db *sql.DB) {
 	case "/start":
 		reply, err = handleCommandStart()
 	case "/register":
-		reply, err = handleCommandRegister(msg, db, args)
+		reply, err = handleCommandRegister(msg, db, args, psg)
 	default:
 		reply, err = handleUnknownCommand()
 	}
@@ -54,7 +54,7 @@ func handleCommandStart() (string, error) {
 	return message, nil
 }
 
-func handleCommandRegister(msg *Message, db *sql.DB, args []string) (string, error) {
+func handleCommandRegister(msg *Message, db *sql.DB, args []string, psg *TelegramBot) (string, error) {
 	var reply string
 	var err error
 
@@ -62,7 +62,7 @@ func handleCommandRegister(msg *Message, db *sql.DB, args []string) (string, err
 		rollno := args[1]
 		password := strings.ToUpper(args[2])
 
-		reply, err = getRegisterReplyAndError(db, rollno, password, msg.Chat.ID)
+		reply, err = getRegisterReplyAndError(db, rollno, password, msg.Chat.ID, psg)
 		if err != nil {
 			log.Print(err)
 		}
