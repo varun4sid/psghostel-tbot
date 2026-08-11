@@ -5,10 +5,11 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/joho/godotenv"
 	"psghostelbot/internal/db"
 	"psghostelbot/internal/logger"
 	tg "psghostelbot/internal/telegram"
+
+	"github.com/joho/godotenv"
 )
 
 func main() {

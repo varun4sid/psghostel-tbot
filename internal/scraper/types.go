@@ -8,3 +8,8 @@ type AuthPayload struct {
 type StudentDetails struct {
 	Name string `json:"name"`
 }
+
+type Token struct {
+	Name     string
+	Quantity string
+}

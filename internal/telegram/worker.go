@@ -42,18 +42,17 @@ func RunBatchScrape(database *sql.DB, psg *TelegramBot, mealName string) {
 				return
 			}
 
-			imageBytes := GetQRImage(s.Rollno, plainPassword, s.ChatID, psg)
+			imageBytes, caption := GetQRImage(s.Rollno, plainPassword, psg)
 			if imageBytes == nil {
 				log.Printf("UNABLE TO GET QR CODE FOR ROLL NO %s", s.Rollno)
 				return
 			}
 
-			err = psg.sendPhoto(s.ChatID, imageBytes, mealName)
+			err = psg.sendPhoto(s.ChatID, imageBytes, caption)
 			if err != nil {
 				log.Printf("UNABLE TO SEND PHOTO TO CHAT ID %d FOR ROLL NO %s : %v", s.ChatID, s.Rollno, err)
 				return
 			} else {
-				log.Printf("Successfully sent photo to chat ID %d for roll no %s", s.ChatID, s.Rollno)
 				atomic.AddInt64(&QRcodesSent, 1)
 			}
 
@@ -88,15 +87,15 @@ func CreateScheduler(database *sql.DB, psg *TelegramBot) *gocron.Scheduler {
 	return scheduler
 }
 
-func GetQRImage(rollno string, password string, chatId int64, psg *TelegramBot) []byte {
-	qrCodeEncoded, err := scraper.GetLiveToken(rollno, password)
+func GetQRImage(rollno string, password string, psg *TelegramBot) ([]byte, string) {
+	qrCodeEncoded, caption, err := scraper.GetLiveToken(rollno, password)
 	if err != nil {
 		log.Printf("UNABLE TO GET LIVE TOKEN FOR ROLL NO %s : %v", rollno, err)
-		return nil
+		return nil, ""
 	}
 
 	if qrCodeEncoded == "" {
-		return nil
+		return nil, ""
 	}
 
 	var rawBase64 string = qrCodeEncoded
@@ -107,8 +106,8 @@ func GetQRImage(rollno string, password string, chatId int64, psg *TelegramBot) 
 	imageBytes, err := base64.StdEncoding.DecodeString(rawBase64)
 	if err != nil {
 		log.Printf("UNABLE TO DECODE BASE64 IMAGE FOR ROLL NO %s : %v", rollno, err)
-		return nil
+		return nil, ""
 	}
 
-	return imageBytes
+	return imageBytes, caption
 }
