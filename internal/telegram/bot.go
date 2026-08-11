@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func createBot(token string) *TelegramBot {
+func CreateBot(token string) *TelegramBot {
 	return &TelegramBot{
 		Token:   token,
 		API_URL: fmt.Sprintf("https://api.telegram.org/bot%s/", token),
@@ -18,8 +18,7 @@ func createBot(token string) *TelegramBot {
 	}
 }
 
-func StartBot(token string, db *sql.DB) {
-	psg := createBot(token)
+func StartBot(psg *TelegramBot, db *sql.DB) {
 	offset := 0
 
 	for {

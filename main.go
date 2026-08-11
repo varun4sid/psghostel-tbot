@@ -27,5 +27,9 @@ func main() {
 	}
 	defer database.Close()
 
-	tg.StartBot(os.Getenv("TELEGRAM_BOT_TOKEN"), database)
+	psg := tg.CreateBot(os.Getenv("TELEGRAM_BOT_TOKEN"))
+	scheduler := tg.CreateScheduler(database, psg)
+	scheduler.StartAsync()
+
+	tg.StartBot(psg, database)
 }
