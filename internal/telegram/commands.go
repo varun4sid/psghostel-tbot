@@ -25,6 +25,8 @@ func handleBotCommand(psg *TelegramBot, msg *Message, db *sql.DB) {
 		reply, err = handleCommandStart()
 	case "/register":
 		reply, err = handleCommandRegister(msg, db, args, psg)
+	case "/unregister":
+		reply, err = handleCommandUnregister(msg, db)
 	default:
 		reply, err = handleUnknownCommand()
 	}
@@ -36,7 +38,7 @@ func handleBotCommand(psg *TelegramBot, msg *Message, db *sql.DB) {
 		if err != nil {
 			log.Printf("Error sending reply for command %s: %v", command, err)
 		} else {
-			if command == "/register" {
+			if command == "/register" && len(args) == 3 {
 				log.Printf("User %d registered with roll number %s", msg.Chat.ID, strings.Fields(msg.Text)[1])
 				psg.deleteMessage(msg.Chat.ID, msg.MessageID)
 			}
@@ -60,7 +62,7 @@ func handleCommandRegister(msg *Message, db *sql.DB, args []string, psg *Telegra
 
 	if len(args) == 3 {
 		rollno := args[1]
-		password := strings.ToUpper(args[2])
+		password := args[2]
 
 		reply, err = getRegisterReplyAndError(db, rollno, password, msg.Chat.ID, psg)
 		if err != nil {
@@ -71,6 +73,30 @@ func handleCommandRegister(msg *Message, db *sql.DB, args []string, psg *Telegra
 	}
 
 	return reply, err
+}
+
+func handleCommandUnregister(msg *Message, db *sql.DB) (string, error) {
+	chat_id, err := db.Query("SELECT chat_id FROM student WHERE chat_id=$1", msg.Chat.ID)
+	if err != nil {
+		log.Printf("Error querying database for chat_id %d: %v", msg.Chat.ID, err)
+		return "An error occurred while processing your request.", err
+	}
+	defer chat_id.Close()
+
+	if !chat_id.Next() {
+		return "You are not registered. Use /register to register yourself.", nil
+	}
+
+	_, err = db.Exec("DELETE FROM student WHERE chat_id=$1", msg.Chat.ID)
+	if err != nil {
+		log.Printf("Error deleting chat_id %d from database: %v", msg.Chat.ID, err)
+		return "An error occurred while processing your request.", err
+	} else {
+		log.Printf("User %d unregistered successfully.", msg.Chat.ID)
+	}
+
+	reply := "You have been unregistered successfully."
+	return reply, nil
 }
 
 func handleUnknownCommand() (string, error) {
