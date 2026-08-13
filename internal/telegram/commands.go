@@ -27,6 +27,8 @@ func handleBotCommand(psg *TelegramBot, msg *Message, db *sql.DB) {
 		reply, err = handleCommandRegister(msg, db, args, psg)
 	case "/unregister":
 		reply, err = handleCommandUnregister(msg, db)
+	case "/help":
+		reply, err = handleCommandHelp()
 	default:
 		reply, err = handleUnknownCommand()
 	}
@@ -97,6 +99,18 @@ func handleCommandUnregister(msg *Message, db *sql.DB) (string, error) {
 
 	reply := "You have been unregistered successfully."
 	return reply, nil
+}
+
+func handleCommandHelp() (string, error) {
+	message := `
+		Available commands:
+		/start - Start the bot and get registration instructions.
+		/register <rollno> <password> - Register yourself to receive booked QR codes.
+		/unregister - Unregister yourself from receiving booked QR codes.
+		/help - Show this help message.
+	`
+
+	return message, nil
 }
 
 func handleUnknownCommand() (string, error) {
