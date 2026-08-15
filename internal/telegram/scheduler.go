@@ -74,7 +74,7 @@ func CreateScheduler(database *sql.DB, psg *TelegramBot) *gocron.Scheduler {
 		RunBatchScrape, database, psg, "Lunch",
 	)
 
-	scheduler.Every(1).Day().At("18:30").Do(
+	scheduler.Every(1).Day().At("18:25").Do(
 		RunBatchScrape, database, psg, "Dinner",
 	)
 

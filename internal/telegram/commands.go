@@ -3,6 +3,7 @@ package telegram
 import (
 	"database/sql"
 	"log"
+	"psghostelbot/internal/db"
 	"strings"
 )
 
@@ -77,19 +78,8 @@ func handleCommandRegister(msg *Message, db *sql.DB, args []string, psg *Telegra
 	return reply, err
 }
 
-func handleCommandUnregister(msg *Message, db *sql.DB) (string, error) {
-	chat_id, err := db.Query("SELECT chat_id FROM student WHERE chat_id=$1", msg.Chat.ID)
-	if err != nil {
-		log.Printf("Error querying database for chat_id %d: %v", msg.Chat.ID, err)
-		return "An error occurred while processing your request.", err
-	}
-	defer chat_id.Close()
-
-	if !chat_id.Next() {
-		return "You are not registered. Use /register to register yourself.", nil
-	}
-
-	_, err = db.Exec("DELETE FROM student WHERE chat_id=$1", msg.Chat.ID)
+func handleCommandUnregister(msg *Message, database *sql.DB) (string, error) {
+	err := db.DeleteStudent(database, msg.Chat.ID)
 	if err != nil {
 		log.Printf("Error deleting chat_id %d from database: %v", msg.Chat.ID, err)
 		return "An error occurred while processing your request.", err

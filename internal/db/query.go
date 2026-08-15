@@ -32,3 +32,21 @@ func GetAllUsers(database *sql.DB) ([]Student, error) {
 
 	return students, nil
 }
+
+func DeleteStudent(database *sql.DB, chatID int64) error {
+	result, err := database.Exec("DELETE FROM student WHERE chat_id=$1", chatID)
+	if err != nil {
+		return fmt.Errorf("UNABLE TO DELETE USER : %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("UNABLE TO GET ROWS AFFECTED : %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("NO USER FOUND WITH CHAT ID: %d", chatID)
+	}
+
+	return nil
+}
