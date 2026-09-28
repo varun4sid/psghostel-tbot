@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"psghostelbot/internal/db"
 	"strings"
@@ -13,6 +14,7 @@ const (
 
 func handleBotCommand(psg *TelegramBot, msg *Message, db *sql.DB) {
 	args := strings.Fields(strings.TrimSpace(msg.Text))
+
 	if len(args) == 0 {
 		return
 	}
@@ -23,7 +25,7 @@ func handleBotCommand(psg *TelegramBot, msg *Message, db *sql.DB) {
 
 	switch command {
 	case "/start":
-		reply, err = handleCommandStart()
+		reply, err = handleCommandStart(msg, db, args, psg)
 	case "/register":
 		reply, err = handleCommandRegister(msg, db, args, psg)
 	case "/unregister":
@@ -49,14 +51,31 @@ func handleBotCommand(psg *TelegramBot, msg *Message, db *sql.DB) {
 	}
 }
 
-func handleCommandStart() (string, error) {
-	message := `
+func handleCommandStart(msg *Message, db *sql.DB, args []string, psg *TelegramBot) (string, error) {
+	var message string
+
+	if len(args) == 1 {
+		message = `
 		Welcome to PSG Tech Hostel Bot!
 		Register yourself as follows:
 
-	` + registration_tip
+		` + registration_tip
 
-	return message, nil
+		return message, nil
+	} else {
+		data := args[len(args)-1]
+		parts := strings.SplitN(data, "_", 2)
+		if len(parts) != 2 {
+			return "Invalid registration data format.", fmt.Errorf("invalid registration data format")
+		}
+
+		message, err := getRegisterReplyAndError(db, parts[0], parts[1], msg.Chat.ID, psg)
+		if err != nil {
+			return "", fmt.Errorf("error during registration: %v", err)
+		}
+		return message, nil
+	}
+
 }
 
 func handleCommandRegister(msg *Message, db *sql.DB, args []string, psg *TelegramBot) (string, error) {

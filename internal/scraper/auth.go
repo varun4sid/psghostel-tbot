@@ -3,6 +3,7 @@ package scraper
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -41,9 +42,20 @@ func GetAuthenticatedClient(rollno, password string) (*http.Client, error) {
 	return client, nil
 }
 
-func GetUserIfExists(rollno, password string) (string, error) {
-	var err error
+func decodeStudentDetails(r io.Reader) (string, error) {
+	var studentDetails []StudentDetails
+	if err := json.NewDecoder(r).Decode(&studentDetails); err != nil {
+		return "", fmt.Errorf("UNABLE TO DECODE STUDENT INFO: %w", err)
+	}
 
+	if len(studentDetails) == 0 {
+		return "", nil
+	}
+
+	return studentDetails[0].Name, nil
+}
+
+func GetUserIfExists(rollno, password string) (string, error) {
 	client, err := GetAuthenticatedClient(rollno, password)
 	if err != nil {
 		return "", err
@@ -59,11 +71,5 @@ func GetUserIfExists(rollno, password string) (string, error) {
 		return "", fmt.Errorf("UNABLE TO FETCH STUDENT INFO: %w", err)
 	}
 
-	var studentDetails []StudentDetails
-	err = json.NewDecoder(response.Body).Decode(&studentDetails)
-	if err != nil {
-		return "", fmt.Errorf("UNABLE TO DECODE STUDENT INFO: %w", err)
-	}
-
-	return studentDetails[0].Name, nil
+	return decodeStudentDetails(response.Body)
 }
